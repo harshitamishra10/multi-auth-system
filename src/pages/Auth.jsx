@@ -210,7 +210,7 @@ const handleResetPassword = async () => {
                 value={formData.name}
                 onChange={handleChange}
                 style={{
-                  width: "100%",
+                  width: "95%",
                   padding: "10px",
                   marginBottom: "10px",
                 }}
@@ -223,7 +223,7 @@ const handleResetPassword = async () => {
                 value={formData.phone}
                 onChange={handleChange}
                 style={{
-                  width: "100%",
+                  width: "95%",
                   padding: "10px",
                   marginBottom: "10px",
                 }}
@@ -238,7 +238,7 @@ const handleResetPassword = async () => {
             value={formData.email}
             onChange={handleChange}
             style={{
-              width: "100%",
+              width: "95%",
               padding: "10px",
               marginBottom: "10px",
             }}
@@ -251,7 +251,7 @@ const handleResetPassword = async () => {
             value={formData.password}
             onChange={handleChange}
             style={{
-              width: "100%",
+              width: "95%",
               padding: "10px",
               marginBottom: "20px",
             }}
@@ -298,7 +298,7 @@ const handleResetPassword = async () => {
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               style={{
-                width: "100%",
+                width: "95%",
                 padding: "10px",
                 marginBottom: "10px",
               }}
@@ -371,7 +371,7 @@ const handleResetPassword = async () => {
       value={phoneOTP}
       onChange={(e) => setPhoneOTP(e.target.value)}
       style={{
-        width: "100%",
+        width: "95%",
         padding: "10px",
         marginBottom: "10px",
       }}
@@ -406,7 +406,7 @@ const handleResetPassword = async () => {
       value={forgotEmail}
       onChange={(e) => setForgotEmail(e.target.value)}
       style={{
-        width: "100%",
+        width: "95%",
         padding: "10px",
         marginBottom: "10px",
       }}
@@ -430,7 +430,7 @@ const handleResetPassword = async () => {
       value={resetOTP}
       onChange={(e) => setResetOTP(e.target.value)}
       style={{
-        width: "100%",
+        width: "95%",
         padding: "10px",
         marginBottom: "10px",
       }}
@@ -442,7 +442,7 @@ const handleResetPassword = async () => {
       value={newPassword}
       onChange={(e) => setNewPassword(e.target.value)}
       style={{
-        width: "100%",
+        width: "95%",
         padding: "10px",
         marginBottom: "10px",
       }}
