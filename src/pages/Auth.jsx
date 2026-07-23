@@ -1,10 +1,22 @@
 import { useState, useEffect } from "react";
-import API from "../api/axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  registerUser,
+  loginUser,
+  verifyOTP,
+  resendOTP,
+  forgotPassword,
+  verifyResetOTP,
+  resetPassword,
+  sendPhoneOTP,
+  verifyPhoneOTP,
+} from "../features/auth/authThunk";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const [isLogin, setIsLogin] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
@@ -12,12 +24,14 @@ const Auth = () => {
   const [phoneOTP, setPhoneOTP] = useState("");
   const [showPhoneOTP, setShowPhoneOTP] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showForgotPasswordOTP, setShowForgotPasswordOTP] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetOTP, setResetOTP] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
-  const [timer, setTimer] =useState(300); // 5 minutes
+  const [timer, setTimer] = useState(300); // 5 minutes
 
-
+  const { loading } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -32,139 +46,168 @@ const Auth = () => {
       [e.target.name]: e.target.value,
     });
   };
-useEffect(() => {
-  if (!showOTP) return;
-  if (timer <= 0) return;
 
-  const interval = setInterval(() => {
-    setTimer((prev) => prev - 1);
-  }, 1000);
+  useEffect(() => {
+    if (!showOTP) return;
+    if (timer <= 0) return;
 
-  return () => clearInterval(interval);
-}, [timer, showOTP]);
+    const interval = setInterval(() => {
+      setTimer((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timer, showOTP]);
 
   const handleRegister = async (e) => {
-  e.preventDefault();
-
-  try {
-    const res = await API.post("/register", formData);
-    toast.success(res.data.message);
-    setShowOTP(true);
-    setShowPhoneOTP(true);
-    setTimer(300); // Timer start
-
-  } catch (err) {
-    toast.error(err.response?.data?.message || err.message);
-  }
-};
-    const handleLogin = async (e) => {
     e.preventDefault();
 
-    try {
-      const res = await API.post("/login", {
-        email: formData.email,
-        password: formData.password,
-      });
+    const result = await dispatch(registerUser(formData));
 
-      localStorage.setItem("token", res.data.accessToken);
+    if (registerUser.fulfilled.match(result)) {
+      toast.success(result.payload.message);
 
-      toast.success(res.data.message);
-
-      navigate("/profile");
-
-    } catch (err) {
-      toast.error(err.response?.data?.message || err.message);
+      setShowOTP(true);
+      setShowPhoneOTP(true);
+      setTimer(300);
+    } else {
+      toast.error(result.payload);
     }
   };
-    const handleVerifyOTP = async () => {
-    try {
-      const res = await API.post("/verify-otp", {
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    const result = await dispatch(
+      loginUser({
+        email: formData.email,
+        password: formData.password,
+      })
+    );
+
+    if (loginUser.fulfilled.match(result)) {
+      localStorage.setItem("token", result.payload.accessToken);
+
+      toast.success(result.payload.message);
+
+      navigate("/profile");
+    } else {
+      toast.error(result.payload);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    const result = await dispatch(
+      verifyOTP({
         email: formData.email,
         otp,
-      });
+      })
+    );
 
-      toast.success(res.data.message);
+    if (verifyOTP.fulfilled.match(result)) {
+      toast.success(result.payload.message);
 
       setShowOTP(false);
       setTimer(300);
       setIsLogin(true);
-
-    } catch (err) {
-      toast.error(err.response?.data?.message || err.message);
+    } else {
+      toast.error(result.payload);
     }
   };
 
-const handleResendOTP = async () => {
-  try {
-    const res = await API.post("/resend-otp", {
-      email: formData.email,
-    });
+  const handleResendOTP = async () => {
+    const result = await dispatch(resendOTP(formData.email));
 
-    toast.success(res.data.message);
+    if (resendOTP.fulfilled.match(result)) {
+      toast.success(result.payload.message);
 
-    // Restart OTP timer
-    setTimer(300);
+      setTimer(300);
+    } else {
+      toast.error(result.payload);
+    }
+  };
 
-  } catch (err) {
-    toast.error(err.response?.data?.message || err.message);
-  }
-};
+  const handleVerifyResetOTP = async () => {
+    const result = await dispatch(
+      verifyResetOTP({
+        email: formData.email,
+        otp: resetOTP,
+      })
+    );
+
+    if (verifyResetOTP.fulfilled.match(result)) {
+      toast.success(result.payload.message);
+
+      setShowResetPassword(true);
+    } else {
+      toast.error(result.payload);
+    }
+  };
+
   const handleSendPhoneOTP = async () => {
-  try {
-    const res = await API.post("/send-phone-otp", {
-      phone: formData.phone,
-    });
+    const result = await dispatch(sendPhoneOTP(formData.phone));
 
-    toast.success(res.data.message);
-  } catch (err) {
-    toast.error(err.response?.data?.message || err.message);
-  }
-};
-const handleVerifyPhoneOTP = async () => {
-  try {
-    const res = await API.post("/verify-phone-otp", {
-      phone: formData.phone,
-      otp: phoneOTP,
-    });
+    if (sendPhoneOTP.fulfilled.match(result)) {
+      toast.success(result.payload.message);
 
-    toast.success(res.data.message);
+      setShowPhoneOTP(true);
+    } else {
+      toast.error(result.payload);
+    }
+  };
 
-    setShowPhoneOTP(false);
+  // Verify Phone OTP
+  const handleVerifyPhoneOTP = async () => {
+    const result = await dispatch(
+      verifyPhoneOTP({
+        phone: formData.phone,
+        otp: phoneOTP,
+      })
+    );
 
-  } catch (err) {
-    toast.error(err.response?.data?.message || err.message);
-  }
-};
+    if (verifyPhoneOTP.fulfilled.match(result)) {
+      localStorage.setItem("token", result.payload.accessToken);
 
-const handleForgotPassword = async () => {
-  try {
-    const res = await API.post("/forgot-password", {
-      email: forgotEmail,
-    });
+      toast.success(result.payload.message);
 
-    toast.success(res.data.message);
-  } catch (err) {
-    toast.error(err.response?.data?.message || err.message);
-  }
-};
+      navigate("/profile");
+    } else {
+      toast.error(result.payload);
+    }
+  };
 
-const handleResetPassword = async () => {
-  try {
-    const res = await API.post("/reset-password", {
-      email: forgotEmail,
-      otp: resetOTP,
-      newPassword,
-    });
+  const handleForgotPassword = async () => {
+    const result = await dispatch(forgotPassword(formData.email));
 
-    toast.success(res.data.message);
+    if (forgotPassword.fulfilled.match(result)) {
+      toast.success(result.payload.message);
 
-    setShowForgotPassword(false);
+      setShowForgotPasswordOTP(true);
+    } else {
+      toast.error(result.payload);
+    }
+  };
 
-  } catch (err) {
-    toast.error(err.response?.data?.message || err.message);
-  }
-};
-    return (
+  const handleResetPassword = async () => {
+    const result = await dispatch(
+      resetPassword({
+        email: formData.email,
+        newPassword,
+      })
+    );
+
+    if (resetPassword.fulfilled.match(result)) {
+      toast.success(result.payload.message);
+
+      setShowResetPassword(false);
+      setShowForgotPasswordOTP(false);
+      setShowForgotPassword(false);
+      setIsLogin(true);
+    } else {
+      toast.error(result.payload);
+    }
+  };
+
+  return (
     <div
       style={{
         display: "flex",
@@ -191,17 +234,13 @@ const handleResetPassword = async () => {
             marginBottom: "20px",
           }}
         >
-          <button onClick={() => setIsLogin(false)}>
-            Register
-          </button>
+          <button onClick={() => setIsLogin(false)}>Register</button>
 
-          <button onClick={() => setIsLogin(true)}>
-            Login
-          </button>
+          <button onClick={() => setIsLogin(true)}>Login</button>
         </div>
 
         <form onSubmit={isLogin ? handleLogin : handleRegister}>
-                    {!isLogin && (
+          {!isLogin && (
             <>
               <input
                 type="text"
@@ -259,30 +298,33 @@ const handleResetPassword = async () => {
 
           <button
             type="submit"
+            disabled={loading}
             style={{
               width: "100%",
               padding: "10px",
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
             }}
           >
-            {isLogin ? "Login" : "Register"}
+            {loading ? "Please wait..." : isLogin ? "Login" : "Register"}
           </button>
-          {isLogin && (
-  <button
-    type="button"
-    onClick={() => setShowForgotPassword(!showForgotPassword)}
-    style={{
-      width: "100%",
-      marginTop: "10px",
-      padding: "10px",
-    }}
-  >
-    Forgot Password?
-  </button>
-)}
 
+          {isLogin && (
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(!showForgotPassword)}
+              style={{
+                width: "100%",
+                marginTop: "10px",
+                padding: "10px",
+              }}
+            >
+              Forgot Password?
+            </button>
+          )}
         </form>
-                {showOTP && (
+
+        {showOTP && (
           <div
             style={{
               marginTop: "20px",
@@ -304,164 +346,198 @@ const handleResetPassword = async () => {
               }}
             />
             <button
-  type="button"
-  onClick={handleVerifyOTP}
-  disabled={timer === 0}
-  style={{
-    width: "100%",
-    padding: "10px",
-    cursor: timer === 0 ? "not-allowed" : "pointer",
-    opacity: timer === 0 ? 0.5 : 1,
-  }}
->
-  Verify OTP
-</button>
-<p
-  style={{
-    textAlign: "center",
-    color: timer <= 60 ? "red" : "green",
-    marginBottom: "10px",
-  }}
->
-  OTP Expires In:
-  {Math.floor(timer / 60)}:
-  {String(timer % 60).padStart(2, "0")}
-</p>
-<button
-  type="button"
-  onClick={handleResendOTP}
-  disabled={timer > 0}
-  style={{
-    width: "100%",
-    padding: "10px",
-    marginTop: "10px",
-    cursor: timer > 0 ? "not-allowed" : "pointer",
-    opacity: timer > 0 ? 0.5 : 1,
-  }}
->
-  Resend OTP
-</button>
+              type="button"
+              onClick={handleVerifyOTP}
+              disabled={timer === 0}
+              style={{
+                width: "100%",
+                padding: "10px",
+                cursor: timer === 0 ? "not-allowed" : "pointer",
+                opacity: timer === 0 ? 0.5 : 1,
+              }}
+            >
+              Verify OTP
+            </button>
+            <p
+              style={{
+                textAlign: "center",
+                color: timer <= 60 ? "red" : "green",
+                marginBottom: "10px",
+              }}
+            >
+              OTP Expires In: {Math.floor(timer / 60)}:
+              {String(timer % 60).padStart(2, "0")}
+            </p>
+            <button
+              type="button"
+              onClick={handleResendOTP}
+              disabled={timer > 0}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginTop: "10px",
+                cursor: timer > 0 ? "not-allowed" : "pointer",
+                opacity: timer > 0 ? 0.5 : 1,
+              }}
+            >
+              Resend OTP
+            </button>
           </div>
         )}
+
         {showPhoneOTP && (
-  <div
-    style={{
-      marginTop: "20px",
-      borderTop: "1px solid #ccc",
-      paddingTop: "20px",
-    }}
-  >
-    <h3>Phone OTP Verification</h3>
+          <div
+            style={{
+              marginTop: "20px",
+              borderTop: "1px solid #ccc",
+              paddingTop: "20px",
+            }}
+          >
+            <h3>Phone OTP Verification</h3>
 
-    <button
-      type="button"
-      onClick={handleSendPhoneOTP}
-      style={{
-        width: "100%",
-        padding: "10px",
-        marginBottom: "10px",
-      }}
-    >
-      Send Phone OTP
-    </button>
+            <button
+              type="button"
+              onClick={handleSendPhoneOTP}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "10px",
+              }}
+            >
+              Send Phone OTP
+            </button>
 
-    <input
-      type="text"
-      placeholder="Enter Phone OTP"
-      value={phoneOTP}
-      onChange={(e) => setPhoneOTP(e.target.value)}
-      style={{
-        width: "95%",
-        padding: "10px",
-        marginBottom: "10px",
-      }}
-    />
+            <input
+              type="text"
+              placeholder="Enter Phone OTP"
+              value={phoneOTP}
+              onChange={(e) => setPhoneOTP(e.target.value)}
+              style={{
+                width: "95%",
+                padding: "10px",
+                marginBottom: "10px",
+              }}
+            />
 
-    <button
-      type="button"
-      onClick={handleVerifyPhoneOTP}
-      style={{
-        width: "100%",
-        padding: "10px",
-      }}
-    >
-      Verify Phone OTP
-    </button>
-  </div>
-)}
+            <button
+              type="button"
+              onClick={handleVerifyPhoneOTP}
+              style={{
+                width: "100%",
+                padding: "10px",
+              }}
+            >
+              Verify Phone OTP
+            </button>
+          </div>
+        )}
 
-{showForgotPassword && (
-  <div
-    style={{
-      marginTop: "20px",
-      borderTop: "1px solid #ccc",
-      paddingTop: "20px",
-    }}
-  >
-    <h3>Forgot Password</h3>
+        {showForgotPassword && !showForgotPasswordOTP && (
+          <div
+            style={{
+              marginTop: "20px",
+              borderTop: "1px solid #ccc",
+              paddingTop: "20px",
+            }}
+          >
+            <h3>Forgot Password</h3>
 
-    <input
-      type="email"
-      placeholder="Enter Email"
-      value={forgotEmail}
-      onChange={(e) => setForgotEmail(e.target.value)}
-      style={{
-        width: "95%",
-        padding: "10px",
-        marginBottom: "10px",
-      }}
-    />
+            <input
+              type="email"
+              placeholder="Enter Email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              style={{
+                width: "95%",
+                padding: "10px",
+                marginBottom: "10px",
+              }}
+            />
 
-    <button
-      type="button"
-      onClick={handleForgotPassword}
-      style={{
-        width: "100%",
-        padding: "10px",
-        marginBottom: "10px",
-      }}
-    >
-      Send Reset OTP
-    </button>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "10px",
+              }}
+            >
+              Send Reset OTP
+            </button>
+          </div>
+        )}
 
-    <input
-      type="text"
-      placeholder="Enter Reset OTP"
-      value={resetOTP}
-      onChange={(e) => setResetOTP(e.target.value)}
-      style={{
-        width: "95%",
-        padding: "10px",
-        marginBottom: "10px",
-      }}
-    />
+        {showForgotPasswordOTP && !showResetPassword && (
+          <div
+            style={{
+              marginTop: "20px",
+              borderTop: "1px solid #ccc",
+              paddingTop: "20px",
+            }}
+          >
+            <h3>Verify Reset OTP</h3>
 
-    <input
-      type="password"
-      placeholder="Enter New Password"
-      value={newPassword}
-      onChange={(e) => setNewPassword(e.target.value)}
-      style={{
-        width: "95%",
-        padding: "10px",
-        marginBottom: "10px",
-      }}
-    />
+            <input
+              type="text"
+              placeholder="Enter Reset OTP"
+              value={resetOTP}
+              onChange={(e) => setResetOTP(e.target.value)}
+              style={{
+                width: "95%",
+                padding: "10px",
+                marginBottom: "10px",
+              }}
+            />
 
-    <button
-      type="button"
-      onClick={handleResetPassword}
-      style={{
-        width: "100%",
-        padding: "10px",
-      }}
-    >
-      Reset Password
-    </button>
-  </div>
-)}
+            <button
+              type="button"
+              onClick={handleVerifyResetOTP}
+              style={{
+                width: "100%",
+                padding: "10px",
+              }}
+            >
+              Verify Reset OTP
+            </button>
+          </div>
+        )}
 
-              </div>
+        {showResetPassword && (
+          <div
+            style={{
+              marginTop: "20px",
+              borderTop: "1px solid #ccc",
+              paddingTop: "20px",
+            }}
+          >
+            <h3>Reset Password</h3>
+
+            <input
+              type="password"
+              placeholder="Enter New Password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              style={{
+                width: "95%",
+                padding: "10px",
+                marginBottom: "10px",
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={handleResetPassword}
+              style={{
+                width: "100%",
+                padding: "10px",
+              }}
+            >
+              Reset Password
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
